@@ -1,6 +1,12 @@
 package:
   name: snooper
 
+dependencies:
+  axi: { git: "https://github.com/pulp-platform/axi.git", version: 0.39.4 } # 0.29.1
+  common_cells: { git: "https://github.com/pulp-platform/common_cells.git", version: 1.21.0 }
+  register_interface: { git: "https://github.com/pulp-platform/register_interface.git", version: 0.4.4 }
+  tcdm_interconnect: { git: "https://github.com/pulp-platform/cluster_interconnect.git", rev: "7d0a4f8acae71a583a6713cab5554e60b9bb8d27" } # version: 1.2.1
+
 sources:
   - rtl/snooper_pkg.sv
   - rtl/cfg_regs_reg_pkg.sv
