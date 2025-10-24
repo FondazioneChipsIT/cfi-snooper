@@ -22,12 +22,11 @@ module snooper
    import cfg_regs_reg_pkg::*;
    import trace_regs_reg_pkg::*;
 #(
-   parameter int unsigned AXI_USER_WIDTH = 1,
    parameter int unsigned AXI_ID_WIDTH = 8,
    parameter int unsigned AXI_ADDR_WIDTH = 64,
    parameter int unsigned AXI_DATA_WIDTH = 64,
-   parameter int unsigned AXI_LITE_ADDR_WIDTH = 32,
-   parameter int unsigned AXI_LITE_DATA_WIDTH = 32,
+   parameter int unsigned ADDR_WIDTH = 32,
+   parameter int unsigned DATA_WIDTH = 32,
    parameter              type axi_aw_chan_t = logic,
    parameter              type axi_ar_chan_t = logic,
    parameter              type axi_r_chan_t = logic,
@@ -58,30 +57,31 @@ module snooper
    localparam int unsigned NumBanks  = 8;
    localparam int unsigned NumWords  = 4096;
    localparam int unsigned MemAddrWidth  = 14;
+   localparam int unsigned NumReadMst = AXI_DATA_WIDTH / DATA_WIDTH;
 
-   typedef logic [AXI_LITE_ADDR_WIDTH-1:0]   addr_lite_t;
-   typedef logic [AXI_LITE_DATA_WIDTH-1:0]   data_lite_t;
-   typedef logic [AXI_LITE_DATA_WIDTH/8-1:0] strb_lite_t;
+   typedef logic [ADDR_WIDTH-1:0]   addr_lite_t;
+   typedef logic [DATA_WIDTH-1:0]   data_lite_t;
+   typedef logic [DATA_WIDTH/8-1:0] strb_lite_t;
 
    `REG_BUS_TYPEDEF_ALL(reg, addr_lite_t, data_lite_t, strb_lite_t)
 
-   logic [NumFields-1:0]                             buff_req;
-   logic [NumFields-1:0] [MemAddrWidth-1:0 ]         buff_add;
-   logic [NumFields-1:0]                             buff_wen;
-   logic [NumFields-1:0] [AXI_LITE_DATA_WIDTH-1:0]   buff_wdata;
-   logic [NumFields-1:0] [AXI_LITE_DATA_WIDTH/8-1:0] buff_be;
-   logic [NumFields-1:0]                             buff_r_valid;
-   logic [NumFields-1:0]                             buff_gnt;
-   logic [NumFields-1:0] [AXI_LITE_DATA_WIDTH-1:0]   buff_r_data;
+   logic [NumFields-1:0]                     buff_req;
+   logic [NumFields-1:0] [MemAddrWidth-1:0 ] buff_add;
+   logic [NumFields-1:0]                     buff_wen;
+   logic [NumFields-1:0] [DATA_WIDTH-1:0]    buff_wdata;
+   logic [NumFields-1:0] [DATA_WIDTH/8-1:0]  buff_be;
+   logic [NumFields-1:0]                     buff_r_valid;
+   logic [NumFields-1:0]                     buff_gnt;
+   logic [NumFields-1:0] [DATA_WIDTH-1:0]    buff_r_data;
 
-   logic                             sw_req;
-   logic [MemAddrWidth-1:0]          sw_add;
-   logic                             sw_wen;
-   logic [AXI_LITE_DATA_WIDTH-1:0]   sw_wdata;
-   logic                             sw_gnt;
-   logic                             sw_r_valid;
-   logic [AXI_LITE_DATA_WIDTH-1:0]   sw_r_rdata;
-   logic [AXI_LITE_DATA_WIDTH/8-1:0] sw_be;
+   logic [NumReadMst-1:0]                   sw_req;
+   logic [NumReadMst-1:0][MemAddrWidth-1:0] sw_add;
+   logic [NumReadMst-1:0]                   sw_wen;
+   logic [NumReadMst-1:0][DATA_WIDTH-1:0]   sw_wdata;
+   logic [NumReadMst-1:0]                   sw_gnt;
+   logic [NumReadMst-1:0]                   sw_r_valid;
+   logic [NumReadMst-1:0][DATA_WIDTH-1:0]   sw_r_rdata;
+   logic [NumReadMst-1:0][DATA_WIDTH/8-1:0] sw_be;
 
    logic snoop_en;
 
@@ -209,7 +209,7 @@ module snooper
    snooping_engine #(
        .NumFields ( NumFields           ),
        .AddrWidth ( MemAddrWidth        ),
-       .DataWidth ( AXI_LITE_DATA_WIDTH )
+       .DataWidth ( DATA_WIDTH )
    ) i_snooping_engine (
        .clk_i           ( clk_i           ),
        .rst_ni          ( rst_ni          ),
@@ -257,13 +257,13 @@ module snooper
    axi_to_mem #(
        .axi_req_t    ( axi_req_t        ),
        .axi_resp_t   ( axi_rsp_t        ),
-       .AddrWidth    ( MemAddrWidth        ),
-       .DataWidth    ( AXI_LITE_DATA_WIDTH ),
-       .IdWidth      ( AXI_ID_WIDTH        ),
-       .NumBanks     ( 1                   ),
-       .BufDepth     ( 1                   ),
-       .HideStrb     ( 1'b0                ),
-       .OutFifoDepth ( 1                   )
+       .AddrWidth    ( MemAddrWidth     ),
+       .DataWidth    ( AXI_DATA_WIDTH   ),
+       .IdWidth      ( AXI_ID_WIDTH     ),
+       .NumBanks     ( NumReadMst       ),
+       .BufDepth     ( 1                ),
+       .HideStrb     ( 1'b0             ),
+       .OutFifoDepth ( 1                )
    ) i_axi_to_mem (
        .clk_i        ( clk_i         ),
        .rst_ni       ( rst_ni        ),
@@ -282,11 +282,11 @@ module snooper
    );
 
    circular_buffer  #(
-       .SlvNumWords  ( NumWords            ),
-       .SlvDataWidth ( AXI_LITE_DATA_WIDTH ),
-       .NumSlv       ( NumBanks            ),
-       .NumMst       ( NumFields + 1       ),
-       .MstAddrWidth ( MemAddrWidth        )
+       .SlvNumWords  ( NumWords               ),
+       .SlvDataWidth ( DATA_WIDTH             ),
+       .NumSlv       ( NumBanks               ),
+       .NumMst       ( NumFields + NumReadMst ),
+       .MstAddrWidth ( MemAddrWidth           )
    ) i_circular_buff (
        .clk_i     (   clk_i                       ),
        .rst_ni    (   rst_ni                      ),
@@ -305,8 +305,8 @@ module snooper
 /////////////////////////
 
    axi_lite_to_reg #(
-     .ADDR_WIDTH     ( AXI_LITE_ADDR_WIDTH ),
-     .DATA_WIDTH     ( AXI_LITE_DATA_WIDTH ),
+     .ADDR_WIDTH     ( AXI_ADDR_WIDTH ),
+     .DATA_WIDTH     ( AXI_DATA_WIDTH ),
      .axi_lite_req_t ( axi_lite_req_t      ),
      .axi_lite_rsp_t ( axi_lite_rsp_t      ),
      .reg_req_t      ( reg_req_t           ),
