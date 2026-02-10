@@ -23,8 +23,9 @@ module snooper
    import trace_regs_reg_pkg::*;
 #(
    parameter int unsigned AXI_ID_WIDTH = 8,
-   parameter int unsigned AXI_ADDR_WIDTH = 64,
+   parameter int unsigned AXI_ADDR_WIDTH = 48,
    parameter int unsigned AXI_DATA_WIDTH = 64,
+   parameter int unsigned AXI_USER_WIDTH = 2,
    parameter int unsigned ADDR_WIDTH = 32,
    parameter int unsigned DATA_WIDTH = 32,
    parameter              type axi_aw_chan_t = logic,
@@ -33,16 +34,14 @@ module snooper
    parameter              type axi_w_chan_t = logic,
    parameter              type axi_b_chan_t = logic,
    parameter              type axi_req_t = logic,
-   parameter              type axi_rsp_t = logic,
-   parameter              type axi_lite_req_t = logic,
-   parameter              type axi_lite_rsp_t = logic
+   parameter              type axi_rsp_t = logic
 )  (
    input  logic                 clk_i,
    input  logic                 rst_ni,
    input  axi_req_t             axi_sw_req_i,
    output axi_rsp_t             axi_sw_rsp_o,
-   input  axi_lite_req_t        axi_lite_cfg_req_i,
-   output axi_lite_rsp_t        axi_lite_cfg_rsp_o,
+   input  axi_req_t             axi_cfg_req_i,
+   output axi_rsp_t             axi_cfg_rsp_o,
    input  trace_t               traces_i,
    output logic                 trigger_o,
    output logic                 core_select_o,
@@ -304,20 +303,26 @@ module snooper
 // Configuration Logic //
 /////////////////////////
 
-   axi_lite_to_reg #(
-     .ADDR_WIDTH     ( AXI_ADDR_WIDTH ),
-     .DATA_WIDTH     ( AXI_DATA_WIDTH ),
-     .axi_lite_req_t ( axi_lite_req_t      ),
-     .axi_lite_rsp_t ( axi_lite_rsp_t      ),
-     .reg_req_t      ( reg_req_t           ),
-     .reg_rsp_t      ( reg_rsp_t           )
-   ) u_axi_lite_to_reg (
-     .clk_i          ( clk_i              ),
-     .rst_ni         ( rst_ni             ),
-     .axi_lite_req_i ( axi_lite_cfg_req_i ),
-     .axi_lite_rsp_o ( axi_lite_cfg_rsp_o ),
-     .reg_req_o      ( cfg_reg_req        ),
-     .reg_rsp_i      ( cfg_reg_rsp        )
+   // Convert from AXI to reg protocol
+   axi_to_reg_v2 #(
+      .AxiAddrWidth ( AXI_ADDR_WIDTH ),
+      .AxiDataWidth ( AXI_DATA_WIDTH ),
+      .AxiIdWidth   ( AXI_ID_WIDTH   ),
+      .AxiUserWidth ( AXI_USER_WIDTH ),
+      .RegDataWidth ( DATA_WIDTH     ),
+      .axi_req_t    ( axi_req_t ),
+      .axi_rsp_t    ( axi_rsp_t ),
+      .reg_req_t    ( reg_req_t ),
+      .reg_rsp_t    ( reg_rsp_t )
+   ) i_axi_to_reg_v2 (
+      .clk_i,
+      .rst_ni,
+      .axi_req_i ( axi_cfg_req_i ),
+      .axi_rsp_o ( axi_cfg_rsp_o ),
+      .reg_req_o ( cfg_reg_req   ),
+      .reg_rsp_i ( cfg_reg_rsp   ),
+      .reg_id_o  ( ),
+      .busy_o    ( )
    );
 
    cfg_regs_reg_top #(
