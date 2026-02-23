@@ -28,6 +28,8 @@ module snooper
    parameter int unsigned AXI_USER_WIDTH = 2,
    parameter int unsigned ADDR_WIDTH = 32,
    parameter int unsigned DATA_WIDTH = 32,
+   parameter int unsigned NR_COMMIT_PORTS = 2,
+   parameter int unsigned XLEN = 64,
    parameter              type axi_aw_chan_t = logic,
    parameter              type axi_ar_chan_t = logic,
    parameter              type axi_r_chan_t = logic,
@@ -42,7 +44,7 @@ module snooper
    output axi_rsp_t             axi_sw_rsp_o,
    input  axi_req_t             axi_cfg_req_i,
    output axi_rsp_t             axi_cfg_rsp_o,
-   input  trace_t               traces_i,
+   input  riscv::ctr_port_t [NR_COMMIT_PORTS-1:0] ctr_commit_i,
    output logic                 trigger_o,
    output logic                 core_select_o,
    output logic                 watermark_irq_o
@@ -102,37 +104,15 @@ module snooper
 
    trace_t trace_buff;
 
+   riscv::priv_lvl_t priv_lvl;
+   riscv::ctrtarget_rv_t emitter_target;
+   riscv::ctrsource_rv_t emitter_source;
+   riscv::ctr_type_t emitter_data;
+   logic [31:0] emitter_instr;
+   logic [NR_COMMIT_PORTS-1:0] filter_en;
+
    axi_req_t   axi_req_cut;
    axi_rsp_t  axi_rsp_cut;
-
-   assign trace_hw2reg.priv_lvl.unused.de   = 1'b1;
-   assign trace_hw2reg.priv_lvl.priv_lvl.de = 1'b1;
-   assign trace_hw2reg.pc_src_h.de          = 1'b1;
-   assign trace_hw2reg.pc_src_l.de          = 1'b1;
-   assign trace_hw2reg.pc_dst_h.de          = 1'b1;
-   assign trace_hw2reg.pc_dst_l.de          = 1'b1;
-   assign trace_hw2reg.metadata.de          = 1'b1;
-   assign trace_hw2reg.opcode.de            = 1'b1;
-   assign trace_hw2reg.valid.de             = 1'b1;
-
-   assign trace_hw2reg.priv_lvl.unused.d    = '0;
-   assign trace_hw2reg.priv_lvl.priv_lvl.d  = traces_i.priv_lvl;
-   assign trace_hw2reg.pc_src_h.d           = traces_i.pc_src_h;
-   assign trace_hw2reg.pc_src_l.d           = traces_i.pc_src_l;
-   assign trace_hw2reg.pc_dst_h.d           = traces_i.pc_dst_h;
-   assign trace_hw2reg.pc_dst_l.d           = traces_i.pc_dst_l;
-   assign trace_hw2reg.metadata.d           = traces_i.metadata;
-   assign trace_hw2reg.opcode.d             = traces_i.opcode;
-   assign trace_hw2reg.valid.d              = traces_i.pc_v;
-
-   assign trace_buff.priv_lvl               = riscv::priv_lvl_t'(trace_reg2hw.priv_lvl.priv_lvl.q);
-   assign trace_buff.pc_src_h               = trace_reg2hw.pc_src_h.q;
-   assign trace_buff.pc_src_l               = trace_reg2hw.pc_src_l.q;
-   assign trace_buff.pc_dst_h               = trace_reg2hw.pc_dst_h.q;
-   assign trace_buff.pc_dst_l               = trace_reg2hw.pc_dst_l.q;
-   assign trace_buff.metadata               = riscv::ctr_type_t'(trace_reg2hw.metadata.q);
-   assign trace_buff.opcode                 = trace_reg2hw.opcode.q;
-   assign trace_buff.pc_v                   = trace_reg2hw.valid.q;
 
    assign cfg_hw2reg.base.de = 1'b1;
    assign cfg_hw2reg.base.d  = first_valid;
@@ -183,6 +163,50 @@ module snooper
 // Snooping Logic //
 ////////////////////
 
+   // Enable the snooper to collect data only when needed
+   trace_filter #(
+      .NR_COMMIT_PORTS(NR_COMMIT_PORTS)
+   ) u_trace_filter (
+      .ctr_commit_i(ctr_commit_i),
+      .config_i    (cfg_reg2hw),
+      .enable_o    (filter_en)
+   );
+
+   ctr_unit #(
+      .NR_COMMIT_PORTS(NR_COMMIT_PORTS),
+      .XLEN(XLEN)
+   ) i_ctr_unit (
+      .clk_i              (clk_i),
+      .rst_ni             (rst_ni),
+      .ctr_commit_ports_i (ctr_commit_i),
+      .filter_enable_i    (filter_en),
+      .emitter_source_o   (emitter_source),
+      .emitter_target_o   (emitter_target),
+      .emitter_data_o     (emitter_data),
+      .emitter_instr_o    (emitter_instr),
+      .priv_lvl_o         (priv_lvl)
+   );
+
+   assign trace_hw2reg.priv_lvl.unused.de   = 1'b1;
+   assign trace_hw2reg.priv_lvl.priv_lvl.de = 1'b1;
+   assign trace_hw2reg.pc_src_h.de          = 1'b1;
+   assign trace_hw2reg.pc_src_l.de          = 1'b1;
+   assign trace_hw2reg.pc_dst_h.de          = 1'b1;
+   assign trace_hw2reg.pc_dst_l.de          = 1'b1;
+   assign trace_hw2reg.metadata.de          = 1'b1;
+   assign trace_hw2reg.opcode.de            = 1'b1;
+   assign trace_hw2reg.valid.de             = 1'b1;
+
+   assign trace_hw2reg.priv_lvl.unused.d    = '0;
+   assign trace_hw2reg.priv_lvl.priv_lvl.d  = priv_lvl;
+   assign trace_hw2reg.pc_src_h.d           = { 1'b0, emitter_source.pc[62:32] };
+   assign trace_hw2reg.pc_src_l.d           = { emitter_source.pc[31:1], 1'b0  };
+   assign trace_hw2reg.pc_dst_h.d           = { 1'b0, emitter_target.pc[62:32] };
+   assign trace_hw2reg.pc_dst_l.d           = { emitter_target.pc[31:1], 1'b0  };
+   assign trace_hw2reg.metadata.d           = { 28'b0, emitter_data            };
+   assign trace_hw2reg.opcode.d             = emitter_instr;
+   assign trace_hw2reg.valid.d              = emitter_source.v;
+
    // Buffering the input traces
    trace_regs_reg_top #(
      .reg_req_t  ( reg_req_t ),
@@ -197,13 +221,14 @@ module snooper
      .devmode_i  ( 1'b0          )
    );
 
-   // Enable the snooper to collect data only when needed
-   trace_filter u_trace_filter (
-      .traces_i   ( trace_buff      ),
-      .config_i   ( cfg_reg2hw      ),
-      .pc_valid_i ( trace_buff.pc_v ),
-      .enable_o   ( snoop_en        )
-   );
+   assign trace_buff.priv_lvl               = riscv::priv_lvl_t'(trace_reg2hw.priv_lvl.priv_lvl.q);
+   assign trace_buff.pc_src_h               = trace_reg2hw.pc_src_h.q;
+   assign trace_buff.pc_src_l               = trace_reg2hw.pc_src_l.q;
+   assign trace_buff.pc_dst_h               = trace_reg2hw.pc_dst_h.q;
+   assign trace_buff.pc_dst_l               = trace_reg2hw.pc_dst_l.q;
+   assign trace_buff.metadata               = riscv::ctr_type_t'(trace_reg2hw.metadata.q);
+   assign trace_buff.opcode                 = trace_reg2hw.opcode.q;
+   assign trace_buff.pc_v                   = trace_reg2hw.valid.q;
 
    snooping_engine #(
        .NumFields ( NumFields           ),
@@ -221,7 +246,7 @@ module snooper
        // Control interface
        .traces_i        ( trace_buff      ),
        .config_i        ( cfg_reg2hw      ),
-       .snoop_en_i      ( snoop_en        ),
+       .snoop_en_i      ( trace_buff.pc_v ),
        // Last valid entry
        .cnt_o           ( cnt             ),
        .first_valid_o   ( first_valid     ),

@@ -9,6 +9,8 @@ dependencies:
 
 sources:
   - rtl/snooper_pkg.sv
+  - rtl/ctr_unit.sv
+  - rtl/fifo_dp_v3.sv
   - rtl/cfg_regs_reg_pkg.sv
   - rtl/cfg_regs_reg_top.sv
   - rtl/trace_regs_reg_pkg.sv
