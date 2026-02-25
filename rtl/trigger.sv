@@ -14,30 +14,31 @@
 module trigger
    import snooper_pkg::*;
    import cfg_regs_reg_pkg::*;
-(
-   input  trace_t           traces_i,
+#(
+   parameter int unsigned NR_COMMIT_PORTS = 2
+) (
+   input  riscv::ctr_port_t [NR_COMMIT_PORTS-1:0] traces_i,
    input  cfg_regs_reg2hw_t config_i,
    output logic             irq_o
 );
-    // Raise the interrupt if and only if one or more enabled target PCs is found in traces.
-   logic [3:0] trig_en;
 
-   assign trig_en[0] = config_i.ctrl.trig_pc_0.q &
-                       ({ traces_i.pc_src_h, traces_i.pc_src_l         } ==
-                        { config_i.trig_pc0_h.q, config_i.trig_pc0_l.q }) ;
+   // Raise the interrupt if and only if one or more enabled target PCs is found in traces.
+   logic [3:0][NR_COMMIT_PORTS-1:0] trig_en;
 
-   assign trig_en[1] = config_i.ctrl.trig_pc_1.q &
-                       ({ traces_i.pc_src_h, traces_i.pc_src_l         } ==
-                        { config_i.trig_pc1_h.q, config_i.trig_pc1_l.q }) ;
+   for (genvar i = 0; i < NR_COMMIT_PORTS; i++) begin
+      assign trig_en[0][i] = config_i.ctrl.trig_pc_0.q & traces_i[i].valid &
+                        (traces_i[i].ctr_source == { config_i.trig_pc0_h.q, config_i.trig_pc0_l.q });
 
-   assign trig_en[2] = config_i.ctrl.trig_pc_2.q &
-                       ({ traces_i.pc_src_h, traces_i.pc_src_l         } ==
-                        { config_i.trig_pc2_h.q, config_i.trig_pc2_l.q }) ;
+      assign trig_en[1][i] = config_i.ctrl.trig_pc_1.q & traces_i[i].valid &
+                        (traces_i[i].ctr_source == { config_i.trig_pc1_h.q, config_i.trig_pc1_l.q });
 
-   assign trig_en[3] = config_i.ctrl.trig_pc_3.q &
-                       ({ traces_i.pc_src_h, traces_i.pc_src_l         } ==
-                        { config_i.trig_pc3_h.q, config_i.trig_pc3_l.q }) ;
+      assign trig_en[2][i] = config_i.ctrl.trig_pc_2.q & traces_i[i].valid &
+                        (traces_i[i].ctr_source == { config_i.trig_pc2_h.q, config_i.trig_pc2_l.q });
 
-   assign irq_o = trig_en[0] | trig_en[1] | trig_en[2] | trig_en[3];
+      assign trig_en[3][i] = config_i.ctrl.trig_pc_3.q & traces_i[i].valid &
+                        (traces_i[i].ctr_source == { config_i.trig_pc3_h.q, config_i.trig_pc3_l.q });
+   end
+
+   assign irq_o = |(trig_en[0] || trig_en[1] || trig_en[2] || trig_en[3]);
 
 endmodule

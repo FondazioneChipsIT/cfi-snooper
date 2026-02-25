@@ -367,10 +367,12 @@ module snooper
 // Triggering Logic  //
 ///////////////////////
 
-   trigger inference_trigger (
-    .traces_i ( trace_buff ),
-    .config_i ( cfg_reg2hw ),
-    .irq_o    ( trigger_o  )
+   trigger #(
+    .NR_COMMIT_PORTS(NR_COMMIT_PORTS)
+   ) inference_trigger (
+    .traces_i ( ctr_commit_i ),
+    .config_i ( cfg_reg2hw   ),
+    .irq_o    ( trigger_o    )
    );
 
 endmodule
