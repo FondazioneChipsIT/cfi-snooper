@@ -155,9 +155,12 @@ module cfg_regs_reg_top #(
   logic ctrl_watermark_en_qs;
   logic ctrl_watermark_en_wd;
   logic ctrl_watermark_en_we;
-  logic [1:0] ctrl_unused_qs;
-  logic [1:0] ctrl_unused_wd;
-  logic ctrl_unused_we;
+  logic ctrl_level_trigger_en_qs;
+  logic ctrl_level_trigger_en_wd;
+  logic ctrl_level_trigger_en_we;
+  logic ctrl_trigger_irq_qs;
+  logic ctrl_trigger_irq_wd;
+  logic ctrl_trigger_irq_we;
   logic [31:0] base_qs;
   logic [31:0] last_qs;
   logic [31:0] range_0_base_h_qs;
@@ -993,18 +996,18 @@ module cfg_regs_reg_top #(
   );
 
 
-  //   F[unused]: 31:30
+  //   F[level_trigger_en]: 30:30
   prim_subreg #(
-    .DW      (2),
+    .DW      (1),
     .SWACCESS("RW"),
-    .RESVAL  (2'h0)
-  ) u_ctrl_unused (
+    .RESVAL  (1'h0)
+  ) u_ctrl_level_trigger_en (
     .clk_i   (clk_i    ),
     .rst_ni  (rst_ni  ),
 
     // from register interface
-    .we     (ctrl_unused_we),
-    .wd     (ctrl_unused_wd),
+    .we     (ctrl_level_trigger_en_we),
+    .wd     (ctrl_level_trigger_en_wd),
 
     // from internal hardware
     .de     (1'b0),
@@ -1012,10 +1015,36 @@ module cfg_regs_reg_top #(
 
     // to internal hardware
     .qe     (),
-    .q      (reg2hw.ctrl.unused.q ),
+    .q      (reg2hw.ctrl.level_trigger_en.q ),
 
     // to register interface (read)
-    .qs     (ctrl_unused_qs)
+    .qs     (ctrl_level_trigger_en_qs)
+  );
+
+
+  //   F[trigger_irq]: 31:31
+  prim_subreg #(
+    .DW      (1),
+    .SWACCESS("RW"),
+    .RESVAL  (1'h0)
+  ) u_ctrl_trigger_irq (
+    .clk_i   (clk_i    ),
+    .rst_ni  (rst_ni  ),
+
+    // from register interface
+    .we     (ctrl_trigger_irq_we),
+    .wd     (ctrl_trigger_irq_wd),
+
+    // from internal hardware
+    .de     (hw2reg.ctrl.trigger_irq.de),
+    .d      (hw2reg.ctrl.trigger_irq.d ),
+
+    // to internal hardware
+    .qe     (),
+    .q      (reg2hw.ctrl.trigger_irq.q ),
+
+    // to register interface (read)
+    .qs     (ctrl_trigger_irq_qs)
   );
 
 
@@ -1903,8 +1932,11 @@ module cfg_regs_reg_top #(
   assign ctrl_watermark_en_we = addr_hit[0] & reg_we & !reg_error;
   assign ctrl_watermark_en_wd = reg_wdata[29];
 
-  assign ctrl_unused_we = addr_hit[0] & reg_we & !reg_error;
-  assign ctrl_unused_wd = reg_wdata[31:30];
+  assign ctrl_level_trigger_en_we = addr_hit[0] & reg_we & !reg_error;
+  assign ctrl_level_trigger_en_wd = reg_wdata[30];
+
+  assign ctrl_trigger_irq_we = addr_hit[0] & reg_we & !reg_error;
+  assign ctrl_trigger_irq_wd = reg_wdata[31];
 
   assign range_0_base_h_we = addr_hit[3] & reg_we & !reg_error;
   assign range_0_base_h_wd = reg_wdata[31:0];
@@ -2015,7 +2047,8 @@ module cfg_regs_reg_top #(
         reg_rdata_next[27] = ctrl_dirljmpinh_qs;
         reg_rdata_next[28] = ctrl_core_select_qs;
         reg_rdata_next[29] = ctrl_watermark_en_qs;
-        reg_rdata_next[31:30] = ctrl_unused_qs;
+        reg_rdata_next[30] = ctrl_level_trigger_en_qs;
+        reg_rdata_next[31] = ctrl_trigger_irq_qs;
       end
 
       addr_hit[1]: begin

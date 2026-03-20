@@ -102,8 +102,11 @@ package cfg_regs_reg_pkg;
       logic        q;
     } watermark_en;
     struct packed {
-      logic [1:0]  q;
-    } unused;
+      logic        q;
+    } level_trigger_en;
+    struct packed {
+      logic        q;
+    } trigger_irq;
   } cfg_regs_reg2hw_ctrl_reg_t;
 
   typedef struct packed {
@@ -251,6 +254,10 @@ package cfg_regs_reg_pkg;
       logic        d;
       logic        de;
     } trig_pc_3;
+    struct packed {
+      logic        d;
+      logic        de;
+    } trigger_irq;
   } cfg_regs_hw2reg_ctrl_reg_t;
 
   typedef struct packed {
@@ -295,7 +302,7 @@ package cfg_regs_reg_pkg;
 
   // HW -> register type
   typedef struct packed {
-    cfg_regs_hw2reg_ctrl_reg_t ctrl; // [87:66]
+    cfg_regs_hw2reg_ctrl_reg_t ctrl; // [89:66]
     cfg_regs_hw2reg_base_reg_t base; // [65:33]
     cfg_regs_hw2reg_last_reg_t last; // [32:0]
   } cfg_regs_hw2reg_t;

@@ -245,11 +245,19 @@
                 resval: "0"
             },
             {
-                bits: "31:30"
-                name: unused
-                desc: '''unused'''
+                bits: "30"
+                name: level_trigger_en
+                desc: '''enable level triggered behaviour for trigger interrupt'''
                 swaccess: "rw"
                 hwaccess: "hro"
+                resval: "0"
+            },
+            {
+                bits: "31"
+                name: trigger_irq
+                desc: '''level triggered trigger interrupt'''
+                swaccess: "rw"
+                hwaccess: "hrw"
                 resval: "0"
             },
           ]

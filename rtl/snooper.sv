@@ -90,6 +90,7 @@ module snooper
    logic [MemAddrWidth-1:0] first_valid;
    logic [MemAddrWidth-1:0] last_valid;
 
+   logic trigger_edge;
    logic [31:0] watermark_lvl;
    logic        read_en;
 
@@ -120,38 +121,41 @@ module snooper
    assign cfg_hw2reg.last.de = 1'b1;
    assign cfg_hw2reg.last.d  = last_valid;
 
-   assign cfg_hw2reg.ctrl.pc_range_0.de = trigger_o;
+   assign cfg_hw2reg.ctrl.pc_range_0.de = trigger_edge;
    assign cfg_hw2reg.ctrl.pc_range_0.d  = 1'b0;
 
-   assign cfg_hw2reg.ctrl.pc_range_1.de = trigger_o;
+   assign cfg_hw2reg.ctrl.pc_range_1.de = trigger_edge;
    assign cfg_hw2reg.ctrl.pc_range_1.d  = 1'b0;
 
-   assign cfg_hw2reg.ctrl.pc_range_2.de = trigger_o;
+   assign cfg_hw2reg.ctrl.pc_range_2.de = trigger_edge;
    assign cfg_hw2reg.ctrl.pc_range_2.d  = 1'b0;
 
-   assign cfg_hw2reg.ctrl.pc_range_3.de = trigger_o;
+   assign cfg_hw2reg.ctrl.pc_range_3.de = trigger_edge;
    assign cfg_hw2reg.ctrl.pc_range_3.d  = 1'b0;
 
-   assign cfg_hw2reg.ctrl.trig_pc_0.de = trigger_o;
+   assign cfg_hw2reg.ctrl.trig_pc_0.de = trigger_edge;
    assign cfg_hw2reg.ctrl.trig_pc_0.d  = 1'b0;
 
-   assign cfg_hw2reg.ctrl.trig_pc_1.de = trigger_o;
+   assign cfg_hw2reg.ctrl.trig_pc_1.de = trigger_edge;
    assign cfg_hw2reg.ctrl.trig_pc_1.d  = 1'b0;
 
-   assign cfg_hw2reg.ctrl.trig_pc_2.de = trigger_o;
+   assign cfg_hw2reg.ctrl.trig_pc_2.de = trigger_edge;
    assign cfg_hw2reg.ctrl.trig_pc_2.d  = 1'b0;
 
-   assign cfg_hw2reg.ctrl.trig_pc_3.de = trigger_o;
+   assign cfg_hw2reg.ctrl.trig_pc_3.de = trigger_edge;
    assign cfg_hw2reg.ctrl.trig_pc_3.d  = 1'b0;
 
-   assign cfg_hw2reg.ctrl.u_mode.de = trigger_o;
+   assign cfg_hw2reg.ctrl.u_mode.de = trigger_edge;
    assign cfg_hw2reg.ctrl.u_mode.d  = 1'b0;
 
-   assign cfg_hw2reg.ctrl.s_mode.de = trigger_o;
+   assign cfg_hw2reg.ctrl.s_mode.de = trigger_edge;
    assign cfg_hw2reg.ctrl.s_mode.d  = 1'b0;
 
-   assign cfg_hw2reg.ctrl.m_mode.de = trigger_o;
+   assign cfg_hw2reg.ctrl.m_mode.de = trigger_edge;
    assign cfg_hw2reg.ctrl.m_mode.d  = 1'b0;
+
+   assign cfg_hw2reg.ctrl.trigger_irq.de = trigger_edge;
+   assign cfg_hw2reg.ctrl.trigger_irq.d  = 1'b1;
 
    assign core_select_o = cfg_reg2hw.ctrl.core_select.q;
 
@@ -159,6 +163,7 @@ module snooper
 
    assign watermark_lvl = cfg_reg2hw.watermark_lvl.q;
 
+   assign trigger_o = cfg_reg2hw.ctrl.level_trigger_en ? cfg_reg2hw.ctrl.trigger_irq : trigger_edge;
 ////////////////////
 // Snooping Logic //
 ////////////////////
@@ -372,7 +377,7 @@ module snooper
    ) inference_trigger (
     .traces_i ( ctr_commit_i ),
     .config_i ( cfg_reg2hw   ),
-    .irq_o    ( trigger_o    )
+    .irq_o    ( trigger_edge )
    );
 
 endmodule
