@@ -38,7 +38,8 @@ module snooping_engine
     // New additions
     input  logic                                   read_en_i,   // Input to indicate read on AXI
     input  logic [31:0]                            watermark_lvl_i,
-    output logic                                   watermark_irq_o
+    output logic                                   watermark_irq_o,
+    output logic                                   halt_o
 );
 
     typedef enum logic [1:0] {
@@ -136,11 +137,11 @@ module snooping_engine
             last_valid_d = '0;
             first_valid_d = '0;
         end else if (snoop_en_i) begin
-            last_valid_d = cnt_o;
+            last_valid_d = next_cnt;
             if (buffer_full_q) begin
                 first_valid_d = first_valid_o + cnt_o_incr;
-                if (first_valid_o >= BUFFER_SIZE) begin
-                    first_valid_d = first_valid_o - BUFFER_SIZE;
+                if (first_valid_o + cnt_o_incr >= BUFFER_SIZE) begin
+                    first_valid_d = '0;
                 end
             end
         end
@@ -151,20 +152,13 @@ module snooping_engine
         if (config_i.ctrl.cnt_rst.q) begin
             last_read_d = '0;
         end else if (read_en_i) begin
-            case (config_i.ctrl.trace_mode.q)
-                ADDRESS: begin
-                    last_read_d = last_read_q + ADDR_MODE_INCR;
-                    if (last_read_q >= BUFFER_SIZE - ADDR_MODE_INCR) begin
-                        last_read_d = last_read_q - BUFFER_SIZE;
-                    end
+            // Avoid increasing the read pointer if there are no new entries to read
+            if (entries_in_buffer >= INSTR_MODE_INCR) begin
+                last_read_d = last_read_q + INSTR_MODE_INCR;
+                if (last_read_q >= BUFFER_SIZE) begin
+                    last_read_d = INSTR_MODE_INCR;
                 end
-                INSTRUCTION: begin
-                    last_read_d = last_read_q + INSTR_MODE_INCR;
-                    if (last_read_q >= BUFFER_SIZE - INSTR_MODE_INCR) begin
-                        last_read_d = last_read_q - BUFFER_SIZE;
-                    end
-                end
-            endcase
+            end
         end
     end
 
@@ -175,6 +169,9 @@ module snooping_engine
             entries_in_buffer = BUFFER_SIZE - last_read_q + last_valid_o;
         end
     end
+
+    // Halt the core if we have more than halt_lvl unread entries (buffer capacity is 16380)
+    assign halt_o = ({{32-AddrWidth{1'b0}}, entries_in_buffer} > config_i.halt_lvl.q) ? config_i.ctrl.core_halt_en.q : 1'b0;
 
     always_comb begin
         next_cnt = cnt_o;

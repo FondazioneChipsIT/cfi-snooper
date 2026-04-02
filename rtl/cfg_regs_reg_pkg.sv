@@ -97,7 +97,7 @@ package cfg_regs_reg_pkg;
     } dirljmpinh;
     struct packed {
       logic        q;
-    } core_select;
+    } core_halt_en;
     struct packed {
       logic        q;
     } watermark_en;
@@ -210,6 +210,10 @@ package cfg_regs_reg_pkg;
   } cfg_regs_reg2hw_watermark_lvl_reg_t;
 
   typedef struct packed {
+    logic [31:0] q;
+  } cfg_regs_reg2hw_halt_lvl_reg_t;
+
+  typedef struct packed {
     struct packed {
       logic        d;
       logic        de;
@@ -272,32 +276,33 @@ package cfg_regs_reg_pkg;
 
   // Register -> HW type
   typedef struct packed {
-    cfg_regs_reg2hw_ctrl_reg_t ctrl; // [831:800]
-    cfg_regs_reg2hw_range_0_base_h_reg_t range_0_base_h; // [799:768]
-    cfg_regs_reg2hw_range_0_base_l_reg_t range_0_base_l; // [767:736]
-    cfg_regs_reg2hw_range_0_last_h_reg_t range_0_last_h; // [735:704]
-    cfg_regs_reg2hw_range_0_last_l_reg_t range_0_last_l; // [703:672]
-    cfg_regs_reg2hw_range_1_base_h_reg_t range_1_base_h; // [671:640]
-    cfg_regs_reg2hw_range_1_base_l_reg_t range_1_base_l; // [639:608]
-    cfg_regs_reg2hw_range_1_last_h_reg_t range_1_last_h; // [607:576]
-    cfg_regs_reg2hw_range_1_last_l_reg_t range_1_last_l; // [575:544]
-    cfg_regs_reg2hw_range_2_base_h_reg_t range_2_base_h; // [543:512]
-    cfg_regs_reg2hw_range_2_base_l_reg_t range_2_base_l; // [511:480]
-    cfg_regs_reg2hw_range_2_last_h_reg_t range_2_last_h; // [479:448]
-    cfg_regs_reg2hw_range_2_last_l_reg_t range_2_last_l; // [447:416]
-    cfg_regs_reg2hw_range_3_base_h_reg_t range_3_base_h; // [415:384]
-    cfg_regs_reg2hw_range_3_base_l_reg_t range_3_base_l; // [383:352]
-    cfg_regs_reg2hw_range_3_last_h_reg_t range_3_last_h; // [351:320]
-    cfg_regs_reg2hw_range_3_last_l_reg_t range_3_last_l; // [319:288]
-    cfg_regs_reg2hw_trig_pc0_h_reg_t trig_pc0_h; // [287:256]
-    cfg_regs_reg2hw_trig_pc0_l_reg_t trig_pc0_l; // [255:224]
-    cfg_regs_reg2hw_trig_pc1_h_reg_t trig_pc1_h; // [223:192]
-    cfg_regs_reg2hw_trig_pc1_l_reg_t trig_pc1_l; // [191:160]
-    cfg_regs_reg2hw_trig_pc2_h_reg_t trig_pc2_h; // [159:128]
-    cfg_regs_reg2hw_trig_pc2_l_reg_t trig_pc2_l; // [127:96]
-    cfg_regs_reg2hw_trig_pc3_h_reg_t trig_pc3_h; // [95:64]
-    cfg_regs_reg2hw_trig_pc3_l_reg_t trig_pc3_l; // [63:32]
-    cfg_regs_reg2hw_watermark_lvl_reg_t watermark_lvl; // [31:0]
+    cfg_regs_reg2hw_ctrl_reg_t ctrl; // [863:832]
+    cfg_regs_reg2hw_range_0_base_h_reg_t range_0_base_h; // [831:800]
+    cfg_regs_reg2hw_range_0_base_l_reg_t range_0_base_l; // [799:768]
+    cfg_regs_reg2hw_range_0_last_h_reg_t range_0_last_h; // [767:736]
+    cfg_regs_reg2hw_range_0_last_l_reg_t range_0_last_l; // [735:704]
+    cfg_regs_reg2hw_range_1_base_h_reg_t range_1_base_h; // [703:672]
+    cfg_regs_reg2hw_range_1_base_l_reg_t range_1_base_l; // [671:640]
+    cfg_regs_reg2hw_range_1_last_h_reg_t range_1_last_h; // [639:608]
+    cfg_regs_reg2hw_range_1_last_l_reg_t range_1_last_l; // [607:576]
+    cfg_regs_reg2hw_range_2_base_h_reg_t range_2_base_h; // [575:544]
+    cfg_regs_reg2hw_range_2_base_l_reg_t range_2_base_l; // [543:512]
+    cfg_regs_reg2hw_range_2_last_h_reg_t range_2_last_h; // [511:480]
+    cfg_regs_reg2hw_range_2_last_l_reg_t range_2_last_l; // [479:448]
+    cfg_regs_reg2hw_range_3_base_h_reg_t range_3_base_h; // [447:416]
+    cfg_regs_reg2hw_range_3_base_l_reg_t range_3_base_l; // [415:384]
+    cfg_regs_reg2hw_range_3_last_h_reg_t range_3_last_h; // [383:352]
+    cfg_regs_reg2hw_range_3_last_l_reg_t range_3_last_l; // [351:320]
+    cfg_regs_reg2hw_trig_pc0_h_reg_t trig_pc0_h; // [319:288]
+    cfg_regs_reg2hw_trig_pc0_l_reg_t trig_pc0_l; // [287:256]
+    cfg_regs_reg2hw_trig_pc1_h_reg_t trig_pc1_h; // [255:224]
+    cfg_regs_reg2hw_trig_pc1_l_reg_t trig_pc1_l; // [223:192]
+    cfg_regs_reg2hw_trig_pc2_h_reg_t trig_pc2_h; // [191:160]
+    cfg_regs_reg2hw_trig_pc2_l_reg_t trig_pc2_l; // [159:128]
+    cfg_regs_reg2hw_trig_pc3_h_reg_t trig_pc3_h; // [127:96]
+    cfg_regs_reg2hw_trig_pc3_l_reg_t trig_pc3_l; // [95:64]
+    cfg_regs_reg2hw_watermark_lvl_reg_t watermark_lvl; // [63:32]
+    cfg_regs_reg2hw_halt_lvl_reg_t halt_lvl; // [31:0]
   } cfg_regs_reg2hw_t;
 
   // HW -> register type
@@ -336,6 +341,7 @@ package cfg_regs_reg_pkg;
   parameter logic [BlockAw-1:0] CFG_REGS_TRIG_PC3_H_OFFSET = 7'h 64;
   parameter logic [BlockAw-1:0] CFG_REGS_TRIG_PC3_L_OFFSET = 7'h 68;
   parameter logic [BlockAw-1:0] CFG_REGS_WATERMARK_LVL_OFFSET = 7'h 6c;
+  parameter logic [BlockAw-1:0] CFG_REGS_HALT_LVL_OFFSET = 7'h 70;
 
   // Register index
   typedef enum int {
@@ -366,11 +372,12 @@ package cfg_regs_reg_pkg;
     CFG_REGS_TRIG_PC2_L,
     CFG_REGS_TRIG_PC3_H,
     CFG_REGS_TRIG_PC3_L,
-    CFG_REGS_WATERMARK_LVL
+    CFG_REGS_WATERMARK_LVL,
+    CFG_REGS_HALT_LVL
   } cfg_regs_id_e;
 
   // Register width information to check illegal writes
-  parameter logic [3:0] CFG_REGS_PERMIT [28] = '{
+  parameter logic [3:0] CFG_REGS_PERMIT [29] = '{
     4'b 1111, // index[ 0] CFG_REGS_CTRL
     4'b 1111, // index[ 1] CFG_REGS_BASE
     4'b 1111, // index[ 2] CFG_REGS_LAST
@@ -398,7 +405,8 @@ package cfg_regs_reg_pkg;
     4'b 1111, // index[24] CFG_REGS_TRIG_PC2_L
     4'b 1111, // index[25] CFG_REGS_TRIG_PC3_H
     4'b 1111, // index[26] CFG_REGS_TRIG_PC3_L
-    4'b 1111  // index[27] CFG_REGS_WATERMARK_LVL
+    4'b 1111, // index[27] CFG_REGS_WATERMARK_LVL
+    4'b 1111  // index[28] CFG_REGS_HALT_LVL
   };
 
 endpackage

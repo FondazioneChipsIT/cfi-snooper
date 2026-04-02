@@ -230,8 +230,8 @@
             },
             {
                 bits: "28"
-                name: core_select
-                desc: '''select among CVA6 core 0 and 1'''
+                name: core_halt_en
+                desc: '''enable core halting when circular buffer is full'''
                 swaccess: "rw"
                 hwaccess: "hro"
                 resval: "0"
@@ -661,6 +661,21 @@
                  bits: "31:0"
                  name: WATERMARK_LVL
                  desc: '''Watermark level for snooper buffer'''
+                 swaccess: "rw"
+                 hwaccess: "hro"
+                 resval: "0"
+              }
+            ]
+      },
+      {
+           name: HALT_LVL
+           desc: "Core halting level for snooper buffer "
+           swaccess: "rw"
+           fields: [
+              {
+                 bits: "31:0"
+                 name:HALT_LVL
+                 desc: '''Core halting level for snooper buffer'''
                  swaccess: "rw"
                  hwaccess: "hro"
                  resval: "0"

@@ -47,7 +47,8 @@ module snooper
    input  riscv::ctr_port_t [NR_COMMIT_PORTS-1:0] ctr_commit_i,
    output logic                 trigger_o,
    output logic                 core_select_o,
-   output logic                 watermark_irq_o
+   output logic                 watermark_irq_o,
+   output logic                 core_halt_o
 );
 
 /////////////////////////////
@@ -157,7 +158,7 @@ module snooper
    assign cfg_hw2reg.ctrl.trigger_irq.de = trigger_edge;
    assign cfg_hw2reg.ctrl.trigger_irq.d  = 1'b1;
 
-   assign core_select_o = cfg_reg2hw.ctrl.core_select.q;
+   assign core_select_o = 1'b0;
 
    assign read_en = sw_req && sw_gnt && ~sw_wen;
 
@@ -258,7 +259,8 @@ module snooper
        .last_valid_o    ( last_valid      ),
        .read_en_i       ( read_en         ),
        .watermark_lvl_i ( watermark_lvl   ),
-       .watermark_irq_o ( watermark_irq_o )
+       .watermark_irq_o ( watermark_irq_o ),
+       .halt_o          ( core_halt_o     )
    );
 
 ///////////////////////////
