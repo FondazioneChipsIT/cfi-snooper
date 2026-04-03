@@ -149,9 +149,9 @@ module cfg_regs_reg_top #(
   logic ctrl_dirljmpinh_qs;
   logic ctrl_dirljmpinh_wd;
   logic ctrl_dirljmpinh_we;
-  logic ctrl_core_select_qs;
-  logic ctrl_core_select_wd;
-  logic ctrl_core_select_we;
+  logic ctrl_core_halt_en_qs;
+  logic ctrl_core_halt_en_wd;
+  logic ctrl_core_halt_en_we;
   logic ctrl_watermark_en_qs;
   logic ctrl_watermark_en_wd;
   logic ctrl_watermark_en_we;
@@ -238,6 +238,9 @@ module cfg_regs_reg_top #(
   logic [31:0] watermark_lvl_qs;
   logic [31:0] watermark_lvl_wd;
   logic watermark_lvl_we;
+  logic [31:0] halt_lvl_qs;
+  logic [31:0] halt_lvl_wd;
+  logic halt_lvl_we;
 
   // Register instances
   // R[ctrl]: V(False)
@@ -944,18 +947,18 @@ module cfg_regs_reg_top #(
   );
 
 
-  //   F[core_select]: 28:28
+  //   F[core_halt_en]: 28:28
   prim_subreg #(
     .DW      (1),
     .SWACCESS("RW"),
     .RESVAL  (1'h0)
-  ) u_ctrl_core_select (
+  ) u_ctrl_core_halt_en (
     .clk_i   (clk_i    ),
     .rst_ni  (rst_ni  ),
 
     // from register interface
-    .we     (ctrl_core_select_we),
-    .wd     (ctrl_core_select_wd),
+    .we     (ctrl_core_halt_en_we),
+    .wd     (ctrl_core_halt_en_wd),
 
     // from internal hardware
     .de     (1'b0),
@@ -963,10 +966,10 @@ module cfg_regs_reg_top #(
 
     // to internal hardware
     .qe     (),
-    .q      (reg2hw.ctrl.core_select.q ),
+    .q      (reg2hw.ctrl.core_halt_en.q ),
 
     // to register interface (read)
-    .qs     (ctrl_core_select_qs)
+    .qs     (ctrl_core_halt_en_qs)
   );
 
 
@@ -1775,9 +1778,36 @@ module cfg_regs_reg_top #(
   );
 
 
+  // R[halt_lvl]: V(False)
+
+  prim_subreg #(
+    .DW      (32),
+    .SWACCESS("RW"),
+    .RESVAL  (32'h0)
+  ) u_halt_lvl (
+    .clk_i   (clk_i    ),
+    .rst_ni  (rst_ni  ),
+
+    // from register interface
+    .we     (halt_lvl_we),
+    .wd     (halt_lvl_wd),
+
+    // from internal hardware
+    .de     (1'b0),
+    .d      ('0  ),
+
+    // to internal hardware
+    .qe     (),
+    .q      (reg2hw.halt_lvl.q ),
+
+    // to register interface (read)
+    .qs     (halt_lvl_qs)
+  );
 
 
-  logic [27:0] addr_hit;
+
+
+  logic [28:0] addr_hit;
   always_comb begin
     addr_hit = '0;
     addr_hit[ 0] = (reg_addr == CFG_REGS_CTRL_OFFSET);
@@ -1808,6 +1838,7 @@ module cfg_regs_reg_top #(
     addr_hit[25] = (reg_addr == CFG_REGS_TRIG_PC3_H_OFFSET);
     addr_hit[26] = (reg_addr == CFG_REGS_TRIG_PC3_L_OFFSET);
     addr_hit[27] = (reg_addr == CFG_REGS_WATERMARK_LVL_OFFSET);
+    addr_hit[28] = (reg_addr == CFG_REGS_HALT_LVL_OFFSET);
   end
 
   assign addrmiss = (reg_re || reg_we) ? ~|addr_hit : 1'b0 ;
@@ -1842,7 +1873,8 @@ module cfg_regs_reg_top #(
                (addr_hit[24] & (|(CFG_REGS_PERMIT[24] & ~reg_be))) |
                (addr_hit[25] & (|(CFG_REGS_PERMIT[25] & ~reg_be))) |
                (addr_hit[26] & (|(CFG_REGS_PERMIT[26] & ~reg_be))) |
-               (addr_hit[27] & (|(CFG_REGS_PERMIT[27] & ~reg_be)))));
+               (addr_hit[27] & (|(CFG_REGS_PERMIT[27] & ~reg_be))) |
+               (addr_hit[28] & (|(CFG_REGS_PERMIT[28] & ~reg_be)))));
   end
 
   assign ctrl_u_mode_we = addr_hit[0] & reg_we & !reg_error;
@@ -1926,8 +1958,8 @@ module cfg_regs_reg_top #(
   assign ctrl_dirljmpinh_we = addr_hit[0] & reg_we & !reg_error;
   assign ctrl_dirljmpinh_wd = reg_wdata[27];
 
-  assign ctrl_core_select_we = addr_hit[0] & reg_we & !reg_error;
-  assign ctrl_core_select_wd = reg_wdata[28];
+  assign ctrl_core_halt_en_we = addr_hit[0] & reg_we & !reg_error;
+  assign ctrl_core_halt_en_wd = reg_wdata[28];
 
   assign ctrl_watermark_en_we = addr_hit[0] & reg_we & !reg_error;
   assign ctrl_watermark_en_wd = reg_wdata[29];
@@ -2013,6 +2045,9 @@ module cfg_regs_reg_top #(
   assign watermark_lvl_we = addr_hit[27] & reg_we & !reg_error;
   assign watermark_lvl_wd = reg_wdata[31:0];
 
+  assign halt_lvl_we = addr_hit[28] & reg_we & !reg_error;
+  assign halt_lvl_wd = reg_wdata[31:0];
+
   // Read data return
   always_comb begin
     reg_rdata_next = '0;
@@ -2045,7 +2080,7 @@ module cfg_regs_reg_top #(
         reg_rdata_next[25] = ctrl_retinh_qs;
         reg_rdata_next[26] = ctrl_indljmpinh_qs;
         reg_rdata_next[27] = ctrl_dirljmpinh_qs;
-        reg_rdata_next[28] = ctrl_core_select_qs;
+        reg_rdata_next[28] = ctrl_core_halt_en_qs;
         reg_rdata_next[29] = ctrl_watermark_en_qs;
         reg_rdata_next[30] = ctrl_level_trigger_en_qs;
         reg_rdata_next[31] = ctrl_trigger_irq_qs;
@@ -2157,6 +2192,10 @@ module cfg_regs_reg_top #(
 
       addr_hit[27]: begin
         reg_rdata_next[31:0] = watermark_lvl_qs;
+      end
+
+      addr_hit[28]: begin
+        reg_rdata_next[31:0] = halt_lvl_qs;
       end
 
       default: begin
