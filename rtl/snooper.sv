@@ -85,6 +85,8 @@ module snooper
    logic [NumReadMst-1:0][DATA_WIDTH-1:0]   sw_r_rdata;
    logic [NumReadMst-1:0][DATA_WIDTH/8-1:0] sw_be;
 
+   logic [NumReadMst-1:0] sw_req_msk;
+
    logic snoop_en;
 
    logic [MemAddrWidth-1:0] cnt;
@@ -160,7 +162,7 @@ module snooper
 
    assign core_select_o = 1'b0;
 
-   assign read_en = sw_req && sw_gnt && ~sw_wen;
+   assign read_en = sw_req_msk && sw_gnt && ~sw_wen;
 
    assign watermark_lvl = cfg_reg2hw.watermark_lvl.q;
 
@@ -312,6 +314,9 @@ module snooper
        .mem_rdata_i  ( sw_r_rdata    )
    );
 
+   // Mask sw_req if there is a buff_req, sw_req is delayed until the conflict is cleared
+   assign sw_req_msk = (buff_req == '0) ? sw_req : '0;
+
    circular_buffer  #(
        .SlvNumWords  ( NumWords               ),
        .SlvDataWidth ( DATA_WIDTH             ),
@@ -321,7 +326,7 @@ module snooper
    ) i_circular_buff (
        .clk_i     (   clk_i                       ),
        .rst_ni    (   rst_ni                      ),
-       .req_i     ( { buff_req     , sw_req     } ),
+       .req_i     ( { buff_req     , sw_req_msk } ),
        .wen_i     ( { buff_wen     , sw_wen     } ),
        .gnt_o     ( { buff_gnt     , sw_gnt     } ),
        .add_i     ( { buff_add     , sw_add     } ),
